@@ -6,59 +6,71 @@ import (
 	"github.com/stretchr/testify/require"
 	scanalert "github.com/tscolari/gormalert"
 	"github.com/tscolari/gormalert/testenv"
+	"gorm.io/gorm"
 )
 
 func Test_ScanAlert(t *testing.T) {
-	testCases := map[string]struct {
-		table       string
-		where       string
-		shouldAlert bool
-	}{
-		"using primary key": {
-			table:       "fruits",
-			where:       "id = 1",
-			shouldAlert: false,
-		},
-
-		"using name index": {
-			table:       "vegetables",
-			where:       "name = 'potato'",
-			shouldAlert: false,
-		},
-
-		"searching for name without index": {
-			table:       "fruits",
-			where:       "name != 'apple'",
-			shouldAlert: true,
-		},
+	databases := map[string]func(*testing.T) *gorm.DB{
+		"postgres": testenv.InitPgDB,
+		"mysql":    testenv.InitMysqlDB,
 	}
 
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			r := require.New(t)
-			db := testenv.InitPgDB(t)
+	for dbType, dbFunc := range databases {
+		t.Run(dbType, func(t *testing.T) {
 
-			var alerted bool
-			var explainResult string
+			testCases := map[string]struct {
+				table       string
+				where       string
+				shouldAlert bool
+			}{
+				"using primary key": {
+					table:       "fruits",
+					where:       "id = 1",
+					shouldAlert: false,
+				},
 
-			scanalert.RegisterScanAlert(db, scanalert.DefaultAlertOptions(), func(source string, result string) {
-				explainResult = result
-				alerted = true
-			})
+				"using name index": {
+					table:       "vegetables",
+					where:       "name = 'potato'",
+					shouldAlert: false,
+				},
 
-			var result struct{}
-
-			err := db.Table(tc.table).Where(tc.where).Find(&result).Error
-			r.NoError(err)
-
-			if tc.shouldAlert {
-				r.True(alerted, "should have alerted:\n%s", explainResult)
-			} else {
-				r.False(alerted, "should not have alerted\n%s", explainResult)
+				"searching for name without index": {
+					table:       "fruits",
+					where:       "name != 'apple'",
+					shouldAlert: true,
+				},
 			}
 
+			for name, tc := range testCases {
+				t.Run(name, func(t *testing.T) {
+					r := require.New(t)
+					db := dbFunc(t)
+
+					var alerted bool
+					var explainResult string
+
+					scanalert.RegisterScanAlert(db, scanalert.DefaultAlertOptions(), func(source string, result string) {
+						explainResult = result
+						alerted = true
+					})
+
+					var result struct{}
+
+					err := db.Table(tc.table).Where(tc.where).Find(&result).Error
+					r.NoError(err)
+
+					if tc.shouldAlert {
+						r.True(alerted, "should have alerted:\n%s", explainResult)
+					} else {
+						r.False(alerted, "should not have alerted\n%s", explainResult)
+					}
+
+				})
+			}
 		})
 	}
+
 }
 
 func Test_ScanAlert_WithRaw(t *testing.T) {

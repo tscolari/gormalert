@@ -3,8 +3,8 @@
 This is a library intended to automatically detect sequential scans on our database,
 and give you a way to be warned about them.
 
-This currently only supports Postgres as the dialect.
-(The limitation is pretty much in the scan detection, e.g. Does this explain contains "Seq Scan"?)
+This currently only supports Postgres and Mysql as the dialect.
+(This is not battle tested on Mysql, apart from the tests on this repo)
 
 ## Usage
 
@@ -37,11 +37,11 @@ type AlertOptions struct {
 
 You can instrument any of the query types:
 
-CreateQuery
-UpdateQuery
-SelectQuery
-DeleteQuery
-RawQuery
+* CreateQuery
+* UpdateQuery
+* SelectQuery
+* DeleteQuery
+* RawQuery
 
 You can also instrument them all, but you will need to a separate call to `RegisterScanAlert` with each one of them.
 Note that the name in the AlertOptions must be unique.
