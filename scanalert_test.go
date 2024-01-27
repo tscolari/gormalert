@@ -64,42 +64,25 @@ func Test_ScanAlert(t *testing.T) {
 func Test_ScanAlert_WithRaw(t *testing.T) {
 	testCases := map[string]struct {
 		query       string
-		includeRaw  bool
 		shouldAlert bool
 	}{
 		"SELECT using primary key": {
 			query:       "SELECT * FROM fruits WHERE id = 1",
-			includeRaw:  true,
 			shouldAlert: false,
 		},
 
-		"SELECT using non-indexed name (with IncludeRaw)": {
+		"SELECT using non-indexed name": {
 			query:       "SELECT * FROM fruits WHERE name != 'apple'",
-			includeRaw:  true,
 			shouldAlert: true,
-		},
-
-		"SELECT using non-indexed name (without IncludeRaw)": {
-			query:       "SELECT * FROM fruits WHERE name != 'apple'",
-			includeRaw:  false,
-			shouldAlert: false,
 		},
 
 		"UPDATE using indexed name": {
 			query:       "UPDATE vegetables SET created_at = NOW() WHERE name = 'potato'",
-			includeRaw:  true,
 			shouldAlert: false,
 		},
 
-		"UPDATE using non-indexed name (without IncludeRaw)": {
+		"UPDATE using non-indexed name": {
 			query:       "UPDATE fruits SET created_at = NOW() WHERE name = 'apple'",
-			includeRaw:  false,
-			shouldAlert: false,
-		},
-
-		"UPDATE using non-indexed name (with IncludeRaw)": {
-			query:       "UPDATE fruits SET created_at = NOW() WHERE name = 'apple'",
-			includeRaw:  true,
 			shouldAlert: true,
 		},
 	}
@@ -113,7 +96,7 @@ func Test_ScanAlert_WithRaw(t *testing.T) {
 			var explainResult string
 
 			options := scanalert.DefaultAlertOptions()
-			options.IncludeRaw = tc.includeRaw
+			options.QueryType = scanalert.RawQuery
 
 			scanalert.RegisterScanAlert(db, options, func(source string, result string) {
 				explainResult = result

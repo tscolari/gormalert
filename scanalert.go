@@ -12,10 +12,16 @@ type queryType string
 type hookType string
 
 const (
+	// CreateQuery will scan for calls to `Create()`.
 	CreateQuery queryType = "create"
-	UpdateQuery queryType = "update"
-	SelectQuery queryType = "query"
+	// DeleteQuery will scan for calls to `Delete()`
 	DeleteQuery queryType = "delete"
+	// RawQuery will scan for calls to `Raw()` or `Exec()`
+	RawQuery queryType = "raw"
+	// SelectQuery will scan for calls to `Select()`
+	SelectQuery queryType = "query"
+	// UpdateQuery will scan for calls to `Update()`.
+	UpdateQuery queryType = "update"
 )
 
 // AlertOptions contains a group of options to be used by the scanalert plugin.
@@ -31,11 +37,6 @@ type AlertOptions struct {
 	// This filter only applies for explicit methods from gorm's DB object
 	// (e.g. Update, First, Find, Create, etc...)
 	QueryType queryType
-
-	// IncludeRaw will also perform the scan detection when the DB detection
-	// for raw queries.
-	// In those cases, it will run for any type of query that is used.
-	IncludeRaw bool
 
 	// ErrorLogger provides a way to flush out internal errors from the plugin.
 	// If not selected errors will be ignored.
@@ -80,12 +81,14 @@ func (s *scanAlerter) Initialize(db *gorm.DB) error {
 	processor := db.Callback().Create()
 
 	switch s.options.QueryType {
-	case UpdateQuery:
-		processor = db.Callback().Update()
-	case SelectQuery:
-		processor = db.Callback().Query()
 	case DeleteQuery:
 		processor = db.Callback().Delete()
+	case RawQuery:
+		processor = db.Callback().Raw()
+	case SelectQuery:
+		processor = db.Callback().Query()
+	case UpdateQuery:
+		processor = db.Callback().Update()
 	}
 
 	scanFunc := s.Scan
@@ -94,10 +97,6 @@ func (s *scanAlerter) Initialize(db *gorm.DB) error {
 	}
 
 	processor.Register(s.Name(), scanFunc)
-	if s.options.IncludeRaw {
-		db.Callback().Raw().Register(s.Name()+"_raw", scanFunc)
-	}
-
 	return nil
 }
 
