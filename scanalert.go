@@ -24,6 +24,16 @@ const (
 	UpdateQuery queryType = "update"
 )
 
+var explainFormat = map[string]string{
+	"postgres": "EXPLAIN ",
+	"mysql":    "EXPLAIN format=tree ",
+}
+
+var tableScanString = map[string]string{
+	"postgres": "Seq Scan",
+	"mysql":    "Table scan",
+}
+
 // AlertOptions contains a group of options to be used by the scanalert plugin.
 type AlertOptions struct {
 	// Name is the name of the plugin. In case you are registering multiple
@@ -100,6 +110,10 @@ func (s *scanAlerter) Initialize(db *gorm.DB) error {
 	return nil
 }
 
+func (s *scanAlerter) AsyncScan(db *gorm.DB) {
+	go s.Scan(db)
+}
+
 func (s *scanAlerter) Scan(db *gorm.DB) {
 	statement := db.Statement
 	query := db.Explain(statement.SQL.String(), statement.Vars...)
@@ -112,7 +126,7 @@ func (s *scanAlerter) Scan(db *gorm.DB) {
 		return
 	}
 
-	rows, err := sqldb.Query("EXPLAIN " + query)
+	rows, err := sqldb.Query(explainFormat[db.Name()] + query)
 	if err != nil {
 		if s.options.ErrorLogger != nil {
 			s.options.ErrorLogger(fmt.Sprintf("failed run the EXPLAIN query: %v", err))
@@ -129,11 +143,7 @@ func (s *scanAlerter) Scan(db *gorm.DB) {
 	}
 
 	results := strings.Join(explainResult, "\n")
-	if strings.Contains(results, "Seq Scan") {
+	if strings.Contains(results, tableScanString[db.Name()]) {
 		s.action(statement.SQL.String(), results)
 	}
-}
-
-func (s *scanAlerter) AsyncScan(db *gorm.DB) {
-	go s.Scan(db)
 }
