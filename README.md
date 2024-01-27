@@ -4,7 +4,7 @@ This is a library intended to automatically detect sequential scans on our datab
 and give you a way to be warned about them.
 
 This currently only supports Postgres as the dialect.
-(The limitation is pretty much in the scan detection, e.g. does this explain contains "Seq Scan"?)
+(The limitation is pretty much in the scan detection, e.g. Does this explain contains "Seq Scan"?)
 
 ## Usage
 
@@ -31,7 +31,6 @@ type AlertOptions struct {
 	Name        string
 	Async       bool
 	QueryType   queryType
-	IncludeRaw  bool
 	ErrorLogger func(string)
 }
 ```
@@ -42,12 +41,12 @@ CreateQuery
 UpdateQuery
 SelectQuery
 DeleteQuery
+RawQuery
 
 You can also instrument them all, but you will need to a separate call to `RegisterScanAlert` with each one of them.
 Note that the name in the AlertOptions must be unique.
 
-The `Async` option will run the callback within a Goroutine, which should not block the main flow.
+The scans are attached to callbacks on gorm for the respective methods (e.g. `CreateQuery` will trigger only for `db.Create(...)`). The `RawQuery` will
+trigger for calls of `Exec(...)` or `Raw(...)`, no mater which kind of query those methods are performing.
 
-Note that by default these will only apply to explicit gorm helpers (e.g. db.Create, db.Update, db.First, db.Find, ...)
-To enable it on Raw() queries, the option `IncludeRaw` must be set. But note that, if set, it will run for ALL raw queries, not only the one
-mentioned in `QueryType`.
+The `Async` option will run the callback within a Goroutine, which should not block the main flow.
