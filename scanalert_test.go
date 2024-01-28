@@ -1,4 +1,4 @@
-package scanalert_test
+package gormalert_test
 
 import (
 	"testing"

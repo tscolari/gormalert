@@ -14,7 +14,7 @@ To make it easier, there's a helper method for it:
 ```go
 
 ...
-scanalertv2.RegisterScanAlert(db, scanalertv2.DefaultAlertOptions(), func(query, explain string) {
+gormalert.RegisterScanAlert(db, gormalert.DefaultAlertOptions(), func(query, explain string) {
     // Tell someone about the sequential scan!
     fmt.Printf("The query %q just did a sequential scan!\n", query)
 })

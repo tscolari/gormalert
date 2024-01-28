@@ -1,4 +1,4 @@
-package scanalert
+package gormalert
 
 import (
 	"fmt"
