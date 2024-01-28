@@ -30,7 +30,7 @@ I don't recommend running this in production, but instead on your tests and stag
 type AlertOptions struct {
 	Name        string
 	Async       bool
-	QueryType   queryType
+	QueryType   []QueryType
 	ErrorLogger func(string)
 }
 ```
@@ -42,9 +42,6 @@ You can instrument any of the query types:
 * SelectQuery
 * DeleteQuery
 * RawQuery
-
-You can also instrument them all, but you will need to a separate call to `RegisterScanAlert` with each one of them.
-Note that the name in the AlertOptions must be unique.
 
 The scans are attached to callbacks on gorm for the respective methods (e.g. `CreateQuery` will trigger only for `db.Create(...)`). The `RawQuery` will
 trigger for calls of `Exec(...)` or `Raw(...)`, no mater which kind of query those methods are performing.

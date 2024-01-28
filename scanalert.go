@@ -8,20 +8,20 @@ import (
 	"gorm.io/gorm"
 )
 
-type queryType string
+type QueryType string
 type hookType string
 
 const (
 	// CreateQuery will scan for calls to `Create()`.
-	CreateQuery queryType = "create"
+	CreateQuery QueryType = "create"
 	// DeleteQuery will scan for calls to `Delete()`
-	DeleteQuery queryType = "delete"
+	DeleteQuery QueryType = "delete"
 	// RawQuery will scan for calls to `Raw()` or `Exec()`
-	RawQuery queryType = "raw"
+	RawQuery QueryType = "raw"
 	// SelectQuery will scan for calls to `Select()`
-	SelectQuery queryType = "query"
+	SelectQuery QueryType = "query"
 	// UpdateQuery will scan for calls to `Update()`.
-	UpdateQuery queryType = "update"
+	UpdateQuery QueryType = "update"
 )
 
 var explainFormat = map[string]string{
@@ -46,7 +46,7 @@ type AlertOptions struct {
 	// QueryType contains the selection of which kind of query this should be scanning for.
 	// This filter only applies for explicit methods from gorm's DB object
 	// (e.g. Update, First, Find, Create, etc...)
-	QueryType queryType
+	QueryTypes []QueryType
 
 	// ErrorLogger provides a way to flush out internal errors from the plugin.
 	// If not selected errors will be ignored.
@@ -55,9 +55,9 @@ type AlertOptions struct {
 
 func DefaultAlertOptions() AlertOptions {
 	return AlertOptions{
-		Name:      "scanalert",
-		Async:     false,
-		QueryType: SelectQuery,
+		Name:       "scanalert",
+		Async:      false,
+		QueryTypes: []QueryType{SelectQuery},
 		ErrorLogger: func(msg string) {
 			fmt.Fprintln(os.Stderr, msg)
 		},
@@ -90,23 +90,26 @@ func (s *scanAlerter) Name() string {
 func (s *scanAlerter) Initialize(db *gorm.DB) error {
 	processor := db.Callback().Create()
 
-	switch s.options.QueryType {
-	case DeleteQuery:
-		processor = db.Callback().Delete()
-	case RawQuery:
-		processor = db.Callback().Raw()
-	case SelectQuery:
-		processor = db.Callback().Query()
-	case UpdateQuery:
-		processor = db.Callback().Update()
+	for _, queryType := range s.options.QueryTypes {
+		switch queryType {
+		case DeleteQuery:
+			processor = db.Callback().Delete()
+		case RawQuery:
+			processor = db.Callback().Raw()
+		case SelectQuery:
+			processor = db.Callback().Query()
+		case UpdateQuery:
+			processor = db.Callback().Update()
+		}
+
+		scanFunc := s.Scan
+		if s.options.Async {
+			scanFunc = s.AsyncScan
+		}
+
+		processor.Register(s.Name()+"_"+string(queryType), scanFunc)
 	}
 
-	scanFunc := s.Scan
-	if s.options.Async {
-		scanFunc = s.AsyncScan
-	}
-
-	processor.Register(s.Name(), scanFunc)
 	return nil
 }
 

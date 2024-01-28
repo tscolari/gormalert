@@ -107,10 +107,7 @@ func Test_ScanAlert_WithRaw(t *testing.T) {
 			var alerted bool
 			var explainResult string
 
-			options := scanalert.DefaultAlertOptions()
-			options.QueryType = scanalert.RawQuery
-
-			scanalert.RegisterScanAlert(db, options, func(source string, result string) {
+			scanalert.RegisterScanAlert(db, scanalert.DefaultAlertOptions(), func(source string, result string) {
 				explainResult = result
 				alerted = true
 			})
