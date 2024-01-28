@@ -23,6 +23,22 @@ gormalert.RegisterScanAlert(db, gormalert.DefaultAlertOptions(), func(query, exp
 The `db` object will be instrumented with the alert after that.
 I don't recommend running this in production, but instead on your tests and staging environments.
 
+### Example
+
+This is a helper that create DB objects for tests, and this code adds a clause to automatically fail
+any test that performs a table scan using that object.
+
+```go
+func testDB(t *testing.T) (*gorm.DB, func()) {
+	db, closer := dbtest.DB(t, ...)
+
+	gormalert.RegisterScanAlert(db, gormalert.DefaultAlertOptions(), func(source string, result string) {
+		require.Failf(t, "the query %q executed a sequential scan: %s", source, result)
+	})
+
+	return db, closer
+}
+```
 
 ### Options
 

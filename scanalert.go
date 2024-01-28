@@ -55,9 +55,15 @@ type AlertOptions struct {
 
 func DefaultAlertOptions() AlertOptions {
 	return AlertOptions{
-		Name:       "scanalert",
-		Async:      false,
-		QueryTypes: []QueryType{SelectQuery},
+		Name:  "scanalert",
+		Async: false,
+		QueryTypes: []QueryType{
+			CreateQuery,
+			DeleteQuery,
+			RawQuery,
+			SelectQuery,
+			UpdateQuery,
+		},
 		ErrorLogger: func(msg string) {
 			fmt.Fprintln(os.Stderr, msg)
 		},
