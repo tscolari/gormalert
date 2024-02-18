@@ -2,7 +2,7 @@ package gormalert
 
 import (
 	"fmt"
-	"os"
+	"log"
 	"strings"
 
 	"gorm.io/gorm"
@@ -50,7 +50,7 @@ type AlertOptions struct {
 
 	// ErrorLogger provides a way to flush out internal errors from the plugin.
 	// If not selected errors will be ignored.
-	ErrorLogger func(string)
+	ErrorLogger func(args ...any)
 }
 
 func DefaultAlertOptions() AlertOptions {
@@ -64,9 +64,7 @@ func DefaultAlertOptions() AlertOptions {
 			SelectQuery,
 			UpdateQuery,
 		},
-		ErrorLogger: func(msg string) {
-			fmt.Fprintln(os.Stderr, msg)
-		},
+		ErrorLogger: log.Print,
 	}
 }
 

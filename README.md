@@ -33,10 +33,23 @@ func testDB(t *testing.T) (*gorm.DB, func()) {
 	db, closer := dbtest.DB(t, ...)
 
 	gormalert.RegisterScanAlert(db, gormalert.DefaultAlertOptions(), func(source string, result string) {
-		require.Failf(t, "the query %q executed a sequential scan: %s", source, result)
+		t.Errorf("the query %q executed a sequential scan: %s", source, result)
 	})
 
 	return db, closer
+}
+```
+
+Alternatively the `ExpectDBWithoutSequentialScan` helper can be used to achieve similar result:
+
+```go
+func TestSomething(t testing.T) {
+	// setup
+	db := ...
+	ExpectDBWithoutSequentialScan(t, db)
+
+	// tests
+	...
 }
 ```
 
