@@ -9,7 +9,6 @@ import (
 )
 
 type QueryType string
-type hookType string
 
 const (
 	// CreateQuery will scan for calls to `Create()`.
@@ -53,6 +52,8 @@ type AlertOptions struct {
 	ErrorLogger func(args ...any)
 }
 
+// DefaultAlertOptions returns an AlertOptions object that is tailored
+// for testing usage.
 func DefaultAlertOptions() AlertOptions {
 	return AlertOptions{
 		Name:  "scanalert",
@@ -70,11 +71,16 @@ func DefaultAlertOptions() AlertOptions {
 
 type actionFunc func(sourceQuery string, scanResult string)
 
-func RegisterScanAlert(db *gorm.DB, options AlertOptions, action actionFunc) {
+// RegisterScanAlert registers a plugin in the gorm.DB argument that
+// will detect sequential scans using the given options.
+// The action function will be called every time a sequential scan is detected.
+func RegisterScanAlert(db *gorm.DB, options AlertOptions, action actionFunc) error {
 	alerter := NewScanAlerterPlugin(options, action)
-	db.Use(alerter)
+	return db.Use(alerter)
 }
 
+// NewScanAlerterPlugin returns a configured gorm plugin that will
+// call `action` every time a sequential scan is detected using the given options.
 func NewScanAlerterPlugin(options AlertOptions, action actionFunc) *scanAlerter {
 	return &scanAlerter{
 		options: options,
@@ -87,10 +93,14 @@ type scanAlerter struct {
 	action  actionFunc
 }
 
+// Name returns the name of the plugin for gorm.
 func (s *scanAlerter) Name() string {
 	return s.options.Name
 }
 
+// Initialize will, based on the options, create callbacks
+// to each query type. Those callbacks will trigger every time
+// those particular query types run.
 func (s *scanAlerter) Initialize(db *gorm.DB) error {
 	processor := db.Callback().Create()
 
@@ -111,16 +121,24 @@ func (s *scanAlerter) Initialize(db *gorm.DB) error {
 			scanFunc = s.AsyncScan
 		}
 
-		processor.Register(s.Name()+"_"+string(queryType), scanFunc)
+		if err := processor.Register(s.Name()+"_"+string(queryType), scanFunc); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
+// AsyncScan will run `Scan` as a goroutine, without blocking the caller.
 func (s *scanAlerter) AsyncScan(db *gorm.DB) {
 	go s.Scan(db)
 }
 
+// Scan will extract the query that was just executed and prepend it with `EXPLAIN`.
+// It will use the result of the explain query to check if a sequential scan was or
+// not executed.
+// When a scan is detected, it will call the configured action with the
+// query string and the explain result.
 func (s *scanAlerter) Scan(db *gorm.DB) {
 	statement := db.Statement
 	query := db.Explain(statement.SQL.String(), statement.Vars...)
@@ -145,7 +163,9 @@ func (s *scanAlerter) Scan(db *gorm.DB) {
 
 	for rows.Next() {
 		var result string
-		rows.Scan(&result)
+		if err := rows.Scan(&result); err != nil {
+			s.options.ErrorLogger("failed to scan explain results:", err)
+		}
 		explainResult = append(explainResult, result)
 	}
 

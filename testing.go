@@ -22,5 +22,7 @@ func ExpectDBWithoutSequentialScan(t *testing.T, db *gorm.DB) {
 		t.Errorf("the query %q executed a sequential scan", sourceQuery)
 	}
 
-	RegisterScanAlert(db, options, assertion)
+	if err := RegisterScanAlert(db, options, assertion); err != nil {
+		t.Errorf("failed to register scan alert: %v", err)
+	}
 }

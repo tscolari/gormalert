@@ -50,10 +50,10 @@ func Test_ScanAlert(t *testing.T) {
 					var alerted bool
 					var explainResult string
 
-					scanalert.RegisterScanAlert(db, scanalert.DefaultAlertOptions(), func(source string, result string) {
+					r.NoError(scanalert.RegisterScanAlert(db, scanalert.DefaultAlertOptions(), func(source string, result string) {
 						explainResult = result
 						alerted = true
-					})
+					}))
 
 					var result struct{}
 
@@ -107,10 +107,10 @@ func Test_ScanAlert_WithRaw(t *testing.T) {
 			var alerted bool
 			var explainResult string
 
-			scanalert.RegisterScanAlert(db, scanalert.DefaultAlertOptions(), func(source string, result string) {
+			r.NoError(scanalert.RegisterScanAlert(db, scanalert.DefaultAlertOptions(), func(source string, result string) {
 				explainResult = result
 				alerted = true
-			})
+			}))
 
 			err := db.Exec(tc.query).Error
 			r.NoError(err)
